@@ -12,7 +12,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using GameInputManager = Mimic.InputSystem.InputManager;
 
-[assembly: MelonInfo(typeof(MimesisEscape.EscapeMod), "Mimesis Escape QTE", "0.2.1", "Local mod")]
+[assembly: MelonInfo(typeof(MimesisEscape.EscapeMod), "Mimesis Escape QTE", "0.2.2", "Local mod")]
 [assembly: MelonGame("ReLUGames", "MIMESIS")]
 
 namespace MimesisEscape;
@@ -41,9 +41,9 @@ public sealed class EscapeMod : MelonMod
     {
         try
         {
-            VerifyFile("Managed/Assembly-CSharp.dll", "4a4d9e97a2061611989309e89227857cdae0b540940489d9ed2dee017e3f47ae");
+            VerifyFile("Managed/Assembly-CSharp.dll", "5a1c9b77719b9282d4b91a070f5db2a127adbe74a95346eb8f1a45872a795759");
             VerifyFile("StreamingAssets/masterdata/GrabData.json", "f4ec14e623f6ee6ade39a36430049b6e9ad898ec836c0fbfd78887c1955b29cf");
-            VerifyFile("StreamingAssets/masterdata/AbnormalData.json", "9f301233cfc69b119e20bdb072747e64065ff1cb3be24a8fe83c1f0f72f51d75");
+            VerifyFile("StreamingAssets/masterdata/AbnormalData.json", "5ab6f6c0c3927e014a44949ee2d707534aaf0b18460b63004f68d8a7659f755b");
             VerifyFile("StreamingAssets/masterdata/MonsterSkillSequenceData.json", "477d83cc9336dad97deacdc29c8b3bb4c657f3a2fe1e7762dcf3ce44533ae206");
             ReadConfig();
             capture = new CaptureAdapter(Log);
@@ -64,7 +64,7 @@ public sealed class EscapeMod : MelonMod
                 postfix: new HarmonyMethod(typeof(EscapeMod), nameof(AfterDequeue)));
             ready = true;
             Application.focusChanged += OnFocusChanged;
-            Log($"Loaded for Steam build 26447295 / game {Application.version} / Unity {Application.unityVersion}; " +
+            Log($"Loaded for Steam build 26558062 / game {Application.version} / Unity {Application.unityVersion}; " +
                 $"Mimesis grab 30001 only; host + opt-in clients (same mod required on host); {required} separate {key} presses / {seconds.ToString(CultureInfo.InvariantCulture)} s. Hashes verified.");
         }
         catch (Exception ex) { Disable(ex); }
@@ -149,7 +149,7 @@ public sealed class EscapeMod : MelonMod
                     bool beta = SteamApps.GetCurrentBetaName(out string branch, 128);
                     Log($"Steam identity: build={build}; branch={(beta ? branch : "public (no beta)")}.");
                     reportedSteam = true;
-                    if (build != 26447295) throw new NotSupportedException("Steam build changed; mod disabled pending audit.");
+                    if (build != 26558062) throw new NotSupportedException("Steam build changed; mod disabled pending audit.");
                 }
                 catch (InvalidOperationException) { /* Steam may not have initialized yet. */ }
             }
