@@ -1,0 +1,17 @@
+.tools/
+.local/
+**/bin/
+**/obj/
+releases/
+*.user
+*.log
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+*.snk
+credentials*.json
+

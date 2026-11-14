@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RestorePackagesPath>$(MSBuildThisFileDirectory)..\.tools\nuget</RestorePackagesPath>
+  </PropertyGroup>
+  <ItemGroup><Compile Include="..\src\QteSession.cs" Link="QteSession.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="..\src\ReleaseTicket.cs" Link="ReleaseTicket.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="..\src\QteWire.cs" Link="QteWire.cs" /></ItemGroup>
+</Project>
