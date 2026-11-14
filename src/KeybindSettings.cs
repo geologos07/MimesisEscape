@@ -11,7 +11,6 @@ namespace MimesisEscape;
 // One row in the current Settings > Controls list, using its native prefab and input blocker.
 internal sealed class KeybindSettings
 {
-    private const string Title = "Освобождение (QTE)";
     private readonly Func<Key> currentKey;
     private readonly Action<Key> saveKey;
     private UIPrefab_ControlSetting? screen;
@@ -20,6 +19,7 @@ internal sealed class KeybindSettings
     private bool waiting;
     private bool released;
     private double deadline;
+    private string? displayedLanguage;
 
     internal KeybindSettings(Func<Key> currentKey, Action<Key> saveKey)
     {
@@ -58,7 +58,7 @@ internal sealed class KeybindSettings
     {
         if (row == null) return;
         row.ResetToggleState();
-        row.SetInfoText(Title);
+        SetInfoText(GameLocalization.Text.Title);
         string name = Keyboard.current == null ? currentKey().ToString() : Keyboard.current[currentKey()].name;
         row.SetKeyboardMouseKey("k_" + name, true);
     }
@@ -73,11 +73,16 @@ internal sealed class KeybindSettings
         released = false;
         deadline = Time.realtimeSinceStartupAsDouble + 15;
         row.SetWaitingForInput(false, true);
-        row.SetInfoText("Нажмите клавишу (Esc — отмена)");
+        SetInfoText(GameLocalization.Text.Prompt);
     }
 
     internal void Tick()
     {
+        if (screen != null && row != null && screen.gameObject.activeInHierarchy && displayedLanguage != GameLocalization.Language)
+        {
+            if (waiting) SetInfoText(GameLocalization.Text.Prompt);
+            else Refresh();
+        }
         if (!waiting) return;
         if (screen == null || !screen.gameObject.activeInHierarchy || !Application.isFocused ||
             Keyboard.current == null || Time.realtimeSinceStartupAsDouble >= deadline)
@@ -100,7 +105,7 @@ internal sealed class KeybindSettings
         string conflict = CaptureAdapter.BindingConflict(manager, pressed.keyCode);
         if (conflict.Length > 0)
         {
-            row!.SetInfoText(pressed.keyCode + " занята — другая клавиша или Esc");
+            SetInfoText(string.Format(GameLocalization.Text.Conflict, pressed.keyCode));
             released = false;
             return;
         }
@@ -111,10 +116,18 @@ internal sealed class KeybindSettings
         }
         catch (Exception)
         {
-            row!.SetInfoText("Ошибка сохранения — повторите выбор");
+            SetInfoText(GameLocalization.Text.Error);
             released = false;
             throw;
         }
+    }
+
+    private void SetInfoText(string text)
+    {
+        if (row == null) return;
+        row.SetInfoText(text);
+        GameLocalization.ApplyDirection(row.UE_InfoText);
+        displayedLanguage = GameLocalization.Language;
     }
 
     internal void Cancel()

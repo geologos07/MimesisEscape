@@ -48,6 +48,7 @@ internal sealed class QteHud
         label.wordSpacing = source.wordSpacing;
         label.lineSpacing = source.lineSpacing;
         label.text = text;
+        GameLocalization.ApplyDirection(label);
         label.gameObject.SetActive(true);
     }
 

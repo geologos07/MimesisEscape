@@ -12,7 +12,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using GameInputManager = Mimic.InputSystem.InputManager;
 
-[assembly: MelonInfo(typeof(MimesisEscape.EscapeMod), "Mimesis Escape QTE", "0.2.2", "Local mod")]
+[assembly: MelonInfo(typeof(MimesisEscape.EscapeMod), "Mimesis Escape QTE", "0.2.3", "Local mod")]
 [assembly: MelonGame("ReLUGames", "MIMESIS")]
 
 namespace MimesisEscape;
@@ -204,7 +204,7 @@ public sealed class EscapeMod : MelonMod
             else if (previous == QteState.Active && qte.State == QteState.Failed)
                 Log("QTE timed out; native grab continues unchanged.");
             if (show)
-                hud.Show(Hub.Main, $"Освобождение  [{key}]   {qte.Progress}/{qte.Required}   {qte.Remaining(Time.realtimeSinceStartupAsDouble):0.0} с");
+                hud.Show(Hub.Main, $"{GameLocalization.Text.Hud}  [{key}]   {qte.Progress}/{qte.Required}   {qte.Remaining(Time.realtimeSinceStartupAsDouble):0.0} {GameLocalization.Text.Seconds}");
             else hud.Hide();
         }
         catch (Exception ex) { Disable(ex); }

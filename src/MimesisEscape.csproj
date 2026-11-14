@@ -4,7 +4,7 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <AssemblyName>MimesisEscape</AssemblyName>
-    <Version>0.2.2</Version>
+    <Version>0.2.3</Version>
     <GamePath Condition="'$(GamePath)' == ''">E:\Steam\steamapps\common\MIMESIS</GamePath>
     <MelonLoaderPath Condition="'$(MelonLoaderPath)' == ''">$(MSBuildThisFileDirectory)..\.tools\melonloader\MelonLoader\net472</MelonLoaderPath>
     <Managed>$(GamePath)\MIMESIS_Data\Managed</Managed>

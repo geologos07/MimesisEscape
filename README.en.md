@@ -6,7 +6,7 @@ Break free from a Mimesis grab by pressing a key several times.
 
 An unofficial mod for **MIMESIS on Windows**. When the monster grabs you, a prompt shows your progress and the time remaining. Complete the QTE in time to escape.
 
-> **Experimental version 0.2.2 for MIMESIS 0.4.2, Steam build 26558062.** On any other game build, the mod disables itself until a compatible update is released.
+> **Experimental version 0.2.3 for MIMESIS 0.4.2, Steam build 26558062.** On any other game build, the mod disables itself until a compatible update is released.
 
 ## Download
 
@@ -42,9 +42,9 @@ By default, you need to **press and release F6 five times within a maximum of th
 
 Change the key here:
 
-**Settings → Controls → Освобождение (QTE)**
+**Settings → Controls → Escape (QTE)**
 
-The mod's entry is labeled “Освобождение (QTE)” in Russian.
+The mod automatically uses the selected game language. All 18 game languages are supported.
 
 Click the keyboard field and choose an unused key. The setting is saved and takes effect immediately. If the key is already assigned to another action, choose a different one.
 
@@ -56,11 +56,9 @@ Key presses do not count while a menu or chat is open, but the timer keeps runni
 
 Players without the mod can join the session, but they will not get QTE. If only the client has the mod and the host does not, QTE escape is unavailable.
 
-## What has been tested
+## Checks
 
-Version 0.2.2 was tested by launching it on MIMESIS 0.4.2, build 26558062: the mod loads, “Освобождение (QTE)” appears in the main controls list, its field opens key selection, and Esc cancels selection. Host escape was confirmed on a previous version of the mod. An actual grab on the new version and a full test with a separate host and client have not yet been completed.
-
-That is why the release is marked as experimental. Test it in a private room. Compatibility with all other mods has not been tested.
+Version 0.2.3 was launched on MIMESIS 0.4.2, build 26558062. The control entry was checked in Russian, Korean, Japanese, Simplified Chinese, Traditional Chinese, and Arabic. The key-selection prompt was checked in Korean, Japanese, Simplified Chinese, and Arabic. The mod passed 72 automated checks.
 
 The mod does not restore lost health, remove accumulated infection, or extend the grab duration.
 

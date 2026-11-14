@@ -8,6 +8,19 @@ void Check(bool condition, string name)
     checks++;
     Console.WriteLine("PASS " + name);
 }
+string[] languages = { "en", "ko", "es", "ja", "fr", "de", "zh_cn", "zh_tw", "pt_br", "it", "ru", "uk", "vi", "th", "tr", "pl", "ar", "da" };
+foreach (string language in languages)
+{
+    var text = EscapeTranslations.Get(language);
+    Check(!string.IsNullOrWhiteSpace(text.Title) && !string.IsNullOrWhiteSpace(text.Prompt) &&
+        !string.IsNullOrWhiteSpace(text.Error) && !string.IsNullOrWhiteSpace(text.Hud) &&
+        !string.IsNullOrWhiteSpace(text.Seconds) && text.Conflict.Contains("{0}") &&
+        string.Format(text.Conflict, "F6").Contains("F6"), "complete translation: " + language);
+}
+Check(EscapeTranslations.Get(null).Title == EscapeTranslations.Get("en").Title &&
+    EscapeTranslations.Get("unknown").Title == EscapeTranslations.Get("en").Title, "unknown language falls back to English");
+Check(EscapeTranslations.Get("KO").Title == EscapeTranslations.Get("ko").Title &&
+    EscapeTranslations.Get("zh_cn").Title != EscapeTranslations.Get("zh_tw").Title, "language matching and Chinese variants");
 QteSession Start(int presses = 5, bool held = false)
 {
     var session = new QteSession();
