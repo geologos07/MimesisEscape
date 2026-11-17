@@ -22,7 +22,6 @@ In Releases, choose the full ZIP package for Windows. Everything you need is inc
 - Counts separate key presses: holding the key is not enough.
 - If you fail, the grab continues as usual, with no additional penalty.
 
-Other monsters and types of grab are not supported yet.
 
 ## Installation
 
