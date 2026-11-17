@@ -17,7 +17,7 @@ internal static class QteWire
             return parts.Length == 2 && parts[0] == "op=release" && GuidField(parts[1], "token=");
         }
         if (parts.Length == 4 && parts[0] == "op=grant")
-            return GuidField(parts[1], "request=") && GuidField(parts[2], "token=") && PositiveInt(parts[3], "ms=", 3800);
+            return GuidField(parts[1], "request=") && GuidField(parts[2], "token=") && PositiveInt(parts[3], "ms=", 30000);
         return parts.Length == 3 && parts[0] == "op=result" && GuidField(parts[1], "token=") &&
             (parts[2] == "ok=0" || parts[2] == "ok=1");
     }

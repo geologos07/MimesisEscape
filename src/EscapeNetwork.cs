@@ -19,7 +19,7 @@ namespace MimesisEscape;
 // No new serializer, socket, message type, dispatcher replacement or broadcast to unmodded players.
 internal sealed class EscapeNetwork
 {
-    internal const string Command = "mimesisescape_v1";
+    internal const string Command = "mimesisescape_v2";
     private static readonly FieldInfo Commands = AccessTools.Field(typeof(VWorld), "AdminCommandFuncs");
     private static readonly FieldInfo Slots = AccessTools.Field(typeof(AttachController), "_attachingActorIDs");
     private static readonly FieldInfo Creature = AccessTools.Field(typeof(AttachController), "_creature");
@@ -49,6 +49,8 @@ internal sealed class EscapeNetwork
         internal VCreature Caster = null!;
         internal AttachController Controller = null!;
         internal AttachMasterInfo Info = null!;
+        internal VCreature Owner = null!;
+        internal VActor Attached = null!;
         internal ReleaseTicket Ticket = null!;
     }
 
@@ -56,6 +58,8 @@ internal sealed class EscapeNetwork
     {
         internal GameMainBase Main = null!;
         internal ProtoActor Avatar = null!, Caster = null!;
+        internal ProtoActor Owner = null!, Attached = null!;
+        internal int GrabId;
         internal Guid Request = Guid.NewGuid(), Ticket;
         internal double ObservedAt, RequestedAt;
         internal bool Requested, Started, Finished, ReleaseSent, Detached;
@@ -92,7 +96,7 @@ internal sealed class EscapeNetwork
         registeredWorld = world;
         registeredHandler = (player, args) => HandleHost(world, player, args);
         commands.Add(Command, registeredHandler);
-        log("Host QTE network handler registered (protocol 1).");
+        log("Host QTE network handler registered (protocol 2).");
     }
 
     internal void ObserveHostAttach(AttachController controller, int victimId)
@@ -100,19 +104,21 @@ internal sealed class EscapeNetwork
         var world = CaptureAdapter.World;
         if (world == null || CaptureAdapter.Pdata?.ClientMode != NetworkClientMode.Host) return;
         if (ticketWorld != world) { tickets.Clear(); ticketWorld = world; }
-        tickets.Remove(victimId);
-        var caster = Creature.GetValue(controller) as VCreature;
+        var owner = Creature.GetValue(controller) as VCreature;
         var info = Info.GetValue(controller) as AttachMasterInfo;
-        var player = caster?.VRoom.FindActorByObjectID(victimId) as VPlayer;
-        if (caster == null || player == null || player.IsHost || info == null ||
-            info.MasterID != CaptureAdapter.GrabId || info.IsReverseGrab || info.Duration <= 0 ||
-            caster.GetCreatureAIData()?.IsMimic() != true || !TryStart(controller, victimId, out long start)) return;
+        var attached = owner?.VRoom.FindActorByObjectID(victimId);
+        var player = (info?.IsReverseGrab == true ? owner : attached) as VPlayer;
+        var caster = (info?.IsReverseGrab == true ? attached : owner) as VCreature;
+        if (player != null) tickets.Remove(player.ObjectID);
+        if (owner == null || attached == null || caster == null || player == null || player.IsHost || info == null ||
+            !CaptureKinds.Matches(info.MasterID, info.IsReverseGrab, caster.MasterID, caster.GetCreatureAIData()?.IsMimic() == true) ||
+            info.Duration <= 0 || !TryStart(controller, attached.ObjectID, out long start)) return;
         long window = (long)Math.Min(info.Duration, hostSeconds() * 1000);
         if (window <= 0) return;
-        tickets[victimId] = new HostCapture
+        tickets[player.ObjectID] = new HostCapture
         {
-            Player = player, Caster = caster, Controller = controller, Info = info,
-            Ticket = new ReleaseTicket(victimId, caster.ObjectID, start,
+            Player = player, Caster = caster, Owner = owner, Attached = attached, Controller = controller, Info = info,
+            Ticket = new ReleaseTicket(player.ObjectID, caster.ObjectID, start,
                 start + window)
         };
     }
@@ -135,9 +141,10 @@ internal sealed class EscapeNetwork
             ReferenceEquals(state.Caster.VRoom.FindActorByObjectID(state.Player.ObjectID), state.Player) &&
             state.Player.IsAliveStatus() && state.Caster.IsAliveStatus() &&
             ReferenceEquals(Info.GetValue(state.Controller), state.Info) && state.Controller.IsAttaching() &&
-            state.Player.AttachControlUnit?.IsAttached() == true &&
-            state.Player.AttachControlUnit.AttachedActorID == state.Caster.ObjectID &&
-            TryStart(state.Controller, state.Player.ObjectID, out nativeStart) && nativeStart == state.Ticket.NativeStart;
+            ReferenceEquals(state.Owner.AttachControlUnit, state.Controller) &&
+            state.Attached.AttachControlUnit?.IsAttached() == true &&
+            state.Attached.AttachControlUnit.AttachedActorID == state.Owner.ObjectID &&
+            TryStart(state.Controller, state.Attached.ObjectID, out nativeStart) && nativeStart == state.Ticket.NativeStart;
     }
 
     private MsgErrorCode HandleHost(VWorld world, VPlayer sender, AdminCommandArgs args)
@@ -160,8 +167,9 @@ internal sealed class EscapeNetwork
             if (operation != "release" || !Guid.TryParseExact(args["token"], "N", out var token) ||
                 !state.Ticket.TryConsume(token, sender.ObjectID, state.Caster.ObjectID, nativeStart, now, true))
                 return Reject(sender, args);
-            bool released = state.Controller.DetachByRequest(sender.ObjectID, sender.ObjectID, DetachReason.ActiveByVictim) &&
-                !sender.AttachControlUnit!.IsAttached();
+            bool released = state.Controller.DetachByRequest(sender.ObjectID, state.Attached.ObjectID,
+                state.Info.IsReverseGrab ? DetachReason.ActiveByCaster : DetachReason.ActiveByVictim) &&
+                !state.Attached.AttachControlUnit!.IsAttached();
             tickets.Remove(sender.ObjectID);
             sender.SendToMe(Message("op=result^token=" + token.ToString("N") + "^ok=" + (released ? "1" : "0")));
             log(released ? "Client QTE: native ActiveByVictim release completed on host." : "Client QTE: native release rejected; no retry.");
@@ -184,30 +192,37 @@ internal sealed class EscapeNetwork
     {
         var main = Hub.Main;
         var local = main?.GetMyAvatar();
-        if (local == null || local.IsHost || !local.AmIAvatar() || sig.targetID != local.ActorID || sig.actorID != caster.ActorID)
+        if (local == null || local.IsHost || !local.AmIAvatar() || sig.actorID != caster.ActorID)
             return;
         if (sig.state == AttachState.Detached)
         {
-            if (client?.Caster == caster)
+            if (client?.Owner == caster && client.Attached.ActorID == sig.targetID)
             {
                 client.Detached = true;
                 if (client.ReleaseSent) log("Client QTE: native detach observed after release request.");
             }
             return;
         }
-        if (sig.state != AttachState.Attached || sig.grabMasterID != CaptureAdapter.GrabId || !caster.IsMimic()) return;
-        if (client != null && client.Main == main && client.Caster == caster && client.Avatar == local && !client.Detached) return;
+        if (sig.state != AttachState.Attached || !CaptureKinds.Supported(sig.grabMasterID)) return;
+        bool reverse = CaptureKinds.Reverse(sig.grabMasterID);
+        if ((reverse ? sig.actorID : sig.targetID) != local.ActorID) return;
+        var attached = main!.GetActorByActorID(sig.targetID);
+        var monster = reverse ? attached : caster;
+        if (attached == null || monster == null ||
+            !CaptureKinds.Matches(sig.grabMasterID, reverse, monster.monsterMasterID, monster.IsMimic())) return;
+        if (client != null && client.Main == main && client.Owner == caster && client.Attached == attached && !client.Detached) return;
         endQte("new client capture");
-        client = new ClientCapture { Main = main!, Avatar = local, Caster = caster, ObservedAt = Time.realtimeSinceStartupAsDouble };
+        client = new ClientCapture { Main = main, Avatar = local, Caster = monster, Owner = caster,
+            Attached = attached, GrabId = sig.grabMasterID, ObservedAt = Time.realtimeSinceStartupAsDouble };
     }
 
     private static bool VisualMatches(ClientCapture state)
     {
-        if (state.Avatar == null || state.Caster == null || state.Avatar.dead || state.Caster.dead ||
-            !state.Avatar.IsGrabbedByOther) return false;
-        object helper = GrabHelper.GetValue(state.Caster);
-        return helper != null && ReferenceEquals(GrabTarget.GetValue(helper), state.Avatar) &&
-            (int)GrabId.GetValue(helper) == CaptureAdapter.GrabId;
+        if (state.Avatar == null || state.Caster == null || state.Owner == null || state.Attached == null ||
+            state.Avatar.dead || state.Caster.dead || !state.Attached.IsGrabbedByOther) return false;
+        object helper = GrabHelper.GetValue(state.Owner);
+        return helper != null && ReferenceEquals(GrabTarget.GetValue(helper), state.Attached) &&
+            (int)GrabId.GetValue(helper) == state.GrabId;
     }
 
     internal string InvalidClientReason()
@@ -230,7 +245,7 @@ internal sealed class EscapeNetwork
         double now = Time.realtimeSinceStartupAsDouble;
         if (Hub.Main != state.Main || CaptureAdapter.Pdata?.SessionJoined != true || state.Avatar == null || state.Avatar.dead)
         { state.Finished = true; return; }
-        if (now - state.ObservedAt >= 3.8 && !state.Started)
+        if (now - state.ObservedAt >= 30 && !state.Started)
         {
             state.Finished = true;
             log("Client QTE unavailable: no valid grant from host before native capture expired. Host needs the same mod version.");
@@ -255,13 +270,13 @@ internal sealed class EscapeNetwork
         if (args["op"] == "grant" && !state.Finished && state.Requested && !state.Started &&
             Guid.TryParseExact(args["request"], "N", out var request) && request == state.Request &&
             Guid.TryParseExact(args["token"], "N", out var token) && token != Guid.Empty &&
-            long.TryParse(args["ms"], out long ms) && ms > 0 && ms <= 3800 && InvalidClientReason().Length == 0)
+            long.TryParse(args["ms"], out long ms) && ms > 0 && ms <= 30000 && InvalidClientReason().Length == 0)
         {
             double window = ReleaseTicket.ClientWindow(ms / 1000.0, state.RequestedAt, Time.realtimeSinceStartupAsDouble);
             if (window <= 0) { state.Finished = true; return; }
             state.Ticket = token; state.Started = true;
             startQte(window);
-            log("Capture started: Mimesis/30001; role=client; host granted a one-use release ticket.");
+            log("Capture started: grab " + state.GrabId + "; role=client; host granted a one-use release ticket.");
         }
         else if (args["op"] == "result" && state.ReleaseSent &&
             Guid.TryParseExact(args["token"], "N", out var responseToken) && responseToken == state.Ticket)

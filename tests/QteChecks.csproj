@@ -8,5 +8,6 @@
   <ItemGroup><Compile Include="..\src\QteSession.cs" Link="QteSession.cs" /></ItemGroup>
   <ItemGroup><Compile Include="..\src\ReleaseTicket.cs" Link="ReleaseTicket.cs" /></ItemGroup>
   <ItemGroup><Compile Include="..\src\QteWire.cs" Link="QteWire.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="..\src\CaptureKinds.cs" Link="CaptureKinds.cs" /></ItemGroup>
   <ItemGroup><Compile Include="..\src\EscapeTranslations.cs" Link="EscapeTranslations.cs" /></ItemGroup>
 </Project>

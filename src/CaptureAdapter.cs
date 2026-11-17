@@ -17,7 +17,6 @@ namespace MimesisEscape;
 // Build-specific bridge to the local host's authoritative grab. Client exchange is in EscapeNetwork.
 internal sealed class CaptureAdapter
 {
-    internal const int GrabId = 30001;
     private static readonly FieldInfo CreatureField = AccessTools.Field(typeof(AttachController), "_creature");
     private static readonly FieldInfo InfoField = AccessTools.Field(typeof(AttachController), "_attachInfo");
     private static readonly FieldInfo PdataField = AccessTools.Field(typeof(Hub), "pdata");
@@ -31,9 +30,12 @@ internal sealed class CaptureAdapter
     private ProtoActor? avatar;
     private AttachController? controller;
     private AttachMasterInfo? info;
+    private VCreature? owner;
+    private VActor? attached;
 
     internal CaptureAdapter(Action<string> log) => this.log = log;
     internal bool HasCapture => controller != null;
+    internal int CurrentGrabId => info?.MasterID ?? 0;
 
     internal static Hub.PersistentData? Pdata => Hub.s == null ? null : PdataField.GetValue(Hub.s) as Hub.PersistentData;
     internal static VWorld? World => Hub.s == null ? null : WorldGetter.Invoke(Hub.s, null) as VWorld;
@@ -45,16 +47,20 @@ internal sealed class CaptureAdapter
             return false;
         var currentMain = Hub.Main;
         var local = currentMain?.GetMyAvatar();
-        var grabber = CreatureField.GetValue(source) as VCreature;
+        var actor = CreatureField.GetValue(source) as VCreature;
         var grabInfo = InfoField.GetValue(source) as AttachMasterInfo;
-        if (local == null || !local.IsHost || !local.AmIAvatar() || local.dead || local.ActorID != targetId ||
-            grabber == null || grabInfo == null || grabInfo.MasterID != GrabId || grabInfo.IsReverseGrab)
+        if (local == null || !local.IsHost || !local.AmIAvatar() || local.dead || actor == null || grabInfo == null ||
+            !CaptureKinds.Supported(grabInfo.MasterID))
             return false;
-        var visualCaster = currentMain!.GetActorByActorID(grabber.ObjectID);
-        var player = grabber.VRoom.FindActorByObjectID(targetId);
-        if (visualCaster == null || !visualCaster.IsMimic() || !(player is VPlayer) || !player.IsAliveStatus() ||
-            player.AttachControlUnit == null || player.AttachControlUnit.AttachedActorID != grabber.ObjectID ||
-            !player.AttachControlUnit.IsAttached() || grabInfo.Duration <= 0)
+        var target = actor.VRoom.FindActorByObjectID(targetId);
+        var player = (grabInfo.IsReverseGrab ? actor : target) as VPlayer;
+        var grabber = (grabInfo.IsReverseGrab ? target : actor) as VCreature;
+        var visualCaster = grabber == null ? null : currentMain!.GetActorByActorID(grabber.ObjectID);
+        if (player == null || grabber == null || visualCaster == null || player.ObjectID != local.ActorID ||
+            !CaptureKinds.Matches(grabInfo.MasterID, grabInfo.IsReverseGrab, grabber.MasterID, visualCaster.IsMimic()) ||
+            !player.IsAliveStatus() || !grabber.IsAliveStatus() || target?.AttachControlUnit == null ||
+            target.AttachControlUnit.AttachedActorID != actor.ObjectID || !target.AttachControlUnit.IsAttached() ||
+            !source.IsAttaching() || grabInfo.Duration <= 0)
             return false;
         var input = Hub.s.GetComponentInChildren<GameInputManager>();
         string conflict = BindingConflict(input, key);
@@ -70,6 +76,8 @@ internal sealed class CaptureAdapter
         avatar = local;
         controller = source;
         info = grabInfo;
+        owner = actor;
+        attached = target;
         duration = grabInfo.Duration / 1000.0;
         return true;
     }
@@ -86,7 +94,8 @@ internal sealed class CaptureAdapter
         if (caster.VRoom.IsSessionEnding || !ReferenceEquals(caster.VRoom.FindActorByObjectID(victim.ObjectID), victim))
             return "room ended or player removed";
         if (!ReferenceEquals(InfoField.GetValue(controller), info) || !controller!.IsAttaching() ||
-            victim.AttachControlUnit?.IsAttached() != true || victim.AttachControlUnit.AttachedActorID != caster.ObjectID)
+            attached?.AttachControlUnit?.IsAttached() != true || attached.AttachControlUnit.AttachedActorID != owner!.ObjectID ||
+            !ReferenceEquals(owner.AttachControlUnit, controller))
             return "native or external release";
         return "";
     }
@@ -114,14 +123,15 @@ internal sealed class CaptureAdapter
     {
         if (InvalidReason().Length > 0) return false;
         // Matches MMBehaviorTree.DetachActor's existing victim-driven branch, including all native cleanup.
-        bool accepted = controller!.DetachByRequest(victim!.ObjectID, victim.ObjectID, DetachReason.ActiveByVictim);
-        return accepted && !victim.AttachControlUnit!.IsAttached();
+        bool accepted = controller!.DetachByRequest(victim!.ObjectID, attached!.ObjectID,
+            info!.IsReverseGrab ? DetachReason.ActiveByCaster : DetachReason.ActiveByVictim);
+        return accepted && !attached.AttachControlUnit!.IsAttached();
     }
 
     internal void Clear()
     {
         main = null; world = null; caster = null; victim = null; avatar = null;
-        controller = null; info = null;
+        controller = null; info = null; owner = null; attached = null;
     }
 
     internal static string BindingConflict(GameInputManager? manager, Key key)

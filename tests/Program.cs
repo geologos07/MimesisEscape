@@ -119,7 +119,14 @@ Check(!QteWire.Valid("op=release^token=" + new string('a', 20000), true), "overs
 Check(!QteWire.Valid("op=release^token=" + Guid.Empty.ToString("N"), true), "empty capability rejected");
 Check(!QteWire.Valid(null, true) && !QteWire.Valid("op=release\ntoken=" + id, true), "null/malformed payload rejected");
 Check(QteWire.Valid("op=grant^request=" + id + "^token=" + id + "^ms=3000", false), "canonical host grant accepted");
-Check(!QteWire.Valid("op=grant^request=" + id + "^token=" + id + "^ms=3801", false), "grant cannot exceed native duration");
+Check(QteWire.Valid("op=grant^request=" + id + "^token=" + id + "^ms=30000", false), "longer native grabs support configured thirty-second maximum");
+Check(!QteWire.Valid("op=grant^request=" + id + "^token=" + id + "^ms=30001", false), "grant cannot exceed configured maximum");
+Check(CaptureKinds.Matches(30001, false, 20000001, true), "Mimesis grab accepted");
+Check(CaptureKinds.Matches(50001, false, 20000005, false), "Mama Monkey direct grab accepted");
+Check(CaptureKinds.Matches(60001, true, 20000007, false), "Quokka reverse grab accepted");
+Check(!CaptureKinds.Matches(50001, true, 20000005, false) && !CaptureKinds.Matches(60001, false, 20000007, false), "wrong grab direction rejected");
+Check(!CaptureKinds.Matches(50001, false, 20000007, false) && !CaptureKinds.Matches(60001, true, 20000013, false), "other monsters rejected");
+Check(!CaptureKinds.Matches(30001, false, 20000005, false) && !CaptureKinds.Supported(13001), "non-Mimesis and PowMoth grabs rejected");
 Check(!QteWire.Valid("op=result^token=" + id + "^ok=yes", false), "ambiguous result rejected");
 var budget = new RequestBudget();
 bool firstEight = true;

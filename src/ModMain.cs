@@ -12,7 +12,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using GameInputManager = Mimic.InputSystem.InputManager;
 
-[assembly: MelonInfo(typeof(MimesisEscape.EscapeMod), "Mimesis Escape QTE", "0.2.3", "Local mod")]
+[assembly: MelonInfo(typeof(MimesisEscape.EscapeMod), "Mimesis Escape QTE", "0.2.4", "Local mod")]
 [assembly: MelonGame("ReLUGames", "MIMESIS")]
 
 namespace MimesisEscape;
@@ -45,6 +45,8 @@ public sealed class EscapeMod : MelonMod
             VerifyFile("StreamingAssets/masterdata/GrabData.json", "f4ec14e623f6ee6ade39a36430049b6e9ad898ec836c0fbfd78887c1955b29cf");
             VerifyFile("StreamingAssets/masterdata/AbnormalData.json", "5ab6f6c0c3927e014a44949ee2d707534aaf0b18460b63004f68d8a7659f755b");
             VerifyFile("StreamingAssets/masterdata/MonsterSkillSequenceData.json", "477d83cc9336dad97deacdc29c8b3bb4c657f3a2fe1e7762dcf3ce44533ae206");
+            VerifyFile("StreamingAssets/masterdata/MonsterData.json", "733a7cbc74ac13a3fe90cd179318e454b461098b701d3becb0b7be919b45e788");
+            VerifyFile("StreamingAssets/masterdata/MonsterSkillData.json", "8fca4c756d0e41ec0d4009c7d25e16bea6303a996ce89804a5e9e95bfb218a28");
             ReadConfig();
             capture = new CaptureAdapter(Log);
             network = new EscapeNetwork(Log, BeginClientCapture, EndCapture, () => seconds);
@@ -65,7 +67,7 @@ public sealed class EscapeMod : MelonMod
             ready = true;
             Application.focusChanged += OnFocusChanged;
             Log($"Loaded for Steam build 26558062 / game {Application.version} / Unity {Application.unityVersion}; " +
-                $"Mimesis grab 30001 only; host + opt-in clients (same mod required on host); {required} separate {key} presses / {seconds.ToString(CultureInfo.InvariantCulture)} s. Hashes verified.");
+                $"Mimesis, Mama Monkey and Quokka Glider grabs; host + opt-in clients (same mod required on host); {required} separate {key} presses / {seconds.ToString(CultureInfo.InvariantCulture)} s. Hashes verified.");
         }
         catch (Exception ex) { Disable(ex); }
     }
@@ -79,7 +81,7 @@ public sealed class EscapeMod : MelonMod
 
     private static void AfterAttach(AttachController __instance, int grabMasterID, int attachedActorID, bool __result)
     {
-        if (!__result || grabMasterID != CaptureAdapter.GrabId || instance?.ready != true) return;
+        if (!__result || !CaptureKinds.Supported(grabMasterID) || instance?.ready != true) return;
         try
         {
             instance.network!.ObserveHostAttach(__instance, attachedActorID);
@@ -131,7 +133,7 @@ public sealed class EscapeMod : MelonMod
         double window = Math.Min(seconds, nativeDuration);
         qte.Begin(++captureNumber, Time.realtimeSinceStartupAsDouble, required, window,
             Keyboard.current == null || Keyboard.current[key].isPressed);
-        Log($"Capture started: Mimesis/30001; QTE window={window.ToString("0.###", CultureInfo.InvariantCulture)} s; native={nativeDuration:0.###} s; role=host.");
+        Log($"Capture started: grab {capture.CurrentGrabId}; QTE window={window.ToString("0.###", CultureInfo.InvariantCulture)} s; native={nativeDuration:0.###} s; role=host.");
     }
 
     public override void OnLateUpdate()
@@ -169,7 +171,7 @@ public sealed class EscapeMod : MelonMod
             {
                 reportedRole = true;
                 bool host = local.IsHost;
-                Log(host ? "Role=host. QTE enabled for local Mimesis grabs." :
+                Log(host ? "Role=host. QTE enabled for supported local grabs." :
                     "Role=client. QTE requires a per-capture grant from a host running the same mod; unmodded players are unaffected.");
             }
             if (!clientAttempt && !capture!.HasCapture) { show = false; hud.Hide(); return; }

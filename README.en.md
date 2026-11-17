@@ -2,11 +2,11 @@
 
 # Mimesis Escape QTE
 
-Break free from a Mimesis grab by pressing a key several times.
+Break free from grabs by Mimesis, Mama Monkey, and Quokka Glider by pressing a key several times.
 
 An unofficial mod for **MIMESIS on Windows**. When the monster grabs you, a prompt shows your progress and the time remaining. Complete the QTE in time to escape.
 
-> **Experimental version 0.2.3 for MIMESIS 0.4.2, Steam build 26558062.** On any other game build, the mod disables itself until a compatible update is released.
+> **Version 0.2.4 for MIMESIS 0.4.2, Steam build 26558062.** On any other game build, the mod disables itself until a compatible update is released.
 
 ## Download
 
@@ -16,13 +16,13 @@ In Releases, choose the full ZIP package for Windows. Everything you need is inc
 
 ## What the mod does
 
-- Lets you attempt to escape a Mimesis chokehold.
+- Lets you attempt to escape grabs by Mimesis, Mama Monkey, and Quokka Glider.
 - Shows the key, press count, and time remaining.
 - Lets you choose a key in the game's settings.
 - Counts separate key presses: holding the key is not enough.
 - If you fail, the grab continues as usual, with no additional penalty.
 
-Only this Mimesis grab is currently supported. Other monsters and types of grab are not supported yet.
+Other monsters and types of grab are not supported yet.
 
 ## Installation
 
@@ -58,7 +58,7 @@ Players without the mod can join the session, but they will not get QTE. If only
 
 ## Checks
 
-Version 0.2.3 was launched on MIMESIS 0.4.2, build 26558062. The control entry was checked in Russian, Korean, Japanese, Simplified Chinese, Traditional Chinese, and Arabic. The key-selection prompt was checked in Korean, Japanese, Simplified Chinese, and Arabic. The mod passed 72 automated checks.
+Version 0.2.4 was launched on MIMESIS 0.4.2, build 26558062. A player confirmed successful escapes from Mama Monkey and Quokka Glider; escape from Mimesis had previously been confirmed. The mod passed 79 automated checks.
 
 The mod does not restore lost health, remove accumulated infection, or extend the grab duration.
 
